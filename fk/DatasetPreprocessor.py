@@ -42,7 +42,7 @@ class DatasetDestinationTaskWrapper(Task):
 
     @property
     def type(self) -> TaskType:
-        return TaskType.CPU
+        return TaskType.IO
 
 
 class WorkerPreferences(typing.TypedDict, total=False):
@@ -131,23 +131,9 @@ class DatasetPreprocessor(IWorkerManager):
             self.logger.warning(f"Task with id '{task_id}' failed to load.")
             raise RuntimeError(f"Task with id '{task_id}' failed to load.")
 
-        registered_tasks = self.tasks
-        tasks_len = len(registered_tasks)
-
-        if tasks_len > 0:
-            last_task = registered_tasks[-1]
-            # noinspection PyProtectedMember
-            last_task_next_task = last_task._next
-            if last_task_next_task is not None:
-                raise RuntimeError(
-                    f"Task '{task_name}' already has next task "
-                    f"registered as '{last_task_next_task.name()}'."
-                )
-
-            else:
-                last_task._next = task
-
+        tasks_len = len(self._task_map)
         task._priority = tasks_len + 1
+
         self._task_map[task_id] = task
         self.logger.info(f"Registered task with id '{task_id}'.")
 
@@ -353,6 +339,9 @@ class DatasetPreprocessor(IWorkerManager):
             if task_pool == worker:
                 continue
 
+            if task_pool.task.type == worker.task.type and task_pool.task.type != TaskType.IO:
+                continue
+
             if task_pool.has_work:
                 return task_pool.steal_work()
 
@@ -392,11 +381,16 @@ class DatasetPreprocessor(IWorkerManager):
         return self._shutdown
 
     def report(self):
-        report_str = 'Task Report:\n'
+        report_str = '\nTask Report:\n'
+        report_str += ('-' * 48) + '\n'
 
-        for task in self.tasks:
+        for task_pool in self._task_pools:
+            task = task_pool.task
+
             report_str += f'{task.name()}\n'
             report_str += f'  {task.id()}\n'
+            report_str += f'    Processed: {task_pool.processed_images}\n'
+            report_str += f'     Rejected: {task_pool.rejected_images}\n'
             report_str += ('-' * 48) + '\n'
 
         self.logger.info(report_str)

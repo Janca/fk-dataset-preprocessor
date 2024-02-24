@@ -1,11 +1,16 @@
 import json
 import logging
+import os.path
 
 import fk
 
 if __name__ == '__main__':
-    with open('env.json', 'r', encoding='utf-8') as f:
-        env = json.load(f)
+    if os.path.exists('env.json'):
+        with open('env.json', 'r', encoding='utf-8') as f:
+            env = json.load(f)
+
+    else:
+        env = {}
 
     preferences: fk.DatasetPreprocessorPreferences = {
         'log_level': logging.INFO,
@@ -24,7 +29,7 @@ if __name__ == '__main__':
             }
         },
         'workers': {
-            'cpu_workers': 128,
+            'cpu_workers': 64,
             'io_workers': 10
         },
         'env': env,
@@ -37,6 +42,10 @@ if __name__ == '__main__':
             'fk:filter:jpg_quality': 75,
             'fk:filter:image_size': {
                 'minimum_edge': 512
+            },
+            'fk:filter:image_brightness': {
+                'minimum': 0.125,
+                'maximum': 0.98
             },
             'fk:filter:cv2_entropy': 7.15,
             'fk:filter:cv2_blur': 300,
