@@ -8,6 +8,7 @@ from fk.image.ImageContext import ImageContext
 
 _T = typing.TypeVar('_T')
 
+
 class TaskType(enum.IntEnum):
     CPU = enum.auto()
     GPU = enum.auto()
@@ -16,10 +17,12 @@ class TaskType(enum.IntEnum):
 class Task(Preprocessor[_T], abc.ABC):
 
     def __init__(self):
-        self._started = False
-        self._next: Task | None = None
-
         self.logger = logging.getLogger(self.__class__.__name__)
+        self._next: Task | None = None
+        self._priority: int = 0
+
+    def __lt__(self, other: typing.Any) -> bool:
+        return self._priority > other._priority
 
     @abc.abstractmethod
     def process(self, context: ImageContext) -> bool:
@@ -41,3 +44,7 @@ class Task(Preprocessor[_T], abc.ABC):
     @property
     def next_task(self):
         return self._next
+
+    @property
+    def priority(self):
+        return self._priority

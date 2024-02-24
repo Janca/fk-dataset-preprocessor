@@ -3,7 +3,7 @@ import typing
 import cv2
 
 from fk.image import ImageContext
-from fk.task.Task import Task, TaskType
+from fk.worker.Task import Task, TaskType
 
 
 class BlurFilterPreferences(typing.TypedDict):

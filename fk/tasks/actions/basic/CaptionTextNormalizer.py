@@ -1,7 +1,7 @@
 import fk.utils.text
 
 from fk.image import ImageContext
-from fk.task.Task import Task, TaskType
+from fk.worker.Task import Task, TaskType
 
 
 class CaptionTextNormalizer(Task[bool]):

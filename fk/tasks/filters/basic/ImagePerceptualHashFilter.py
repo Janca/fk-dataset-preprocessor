@@ -4,7 +4,7 @@ import PIL.Image
 import imagehash
 
 from fk.image import ImageContext
-from fk.task.Task import Task, TaskType
+from fk.worker.Task import Task, TaskType
 
 
 class ImagePerceptualHashFilterPreferences(typing.TypedDict):
@@ -17,6 +17,8 @@ class ImagePerceptualHashFilter(Task[ImagePerceptualHashFilterPreferences]):
     hash_size: int | None
     hash_type: str | None
     distance_threshold: float | None
+
+    hash_fn: typing.Callable
 
     def __init__(self):
         super().__init__()
@@ -42,6 +44,9 @@ class ImagePerceptualHashFilter(Task[ImagePerceptualHashFilterPreferences]):
 
         return True
 
+    def initialize(self):
+        self.hash_fn = getattr(imagehash, self.hash_type)
+
     def process(self, context: ImageContext) -> bool:
         image = context.image
         image_hash = self.hash_func(image)
@@ -56,8 +61,7 @@ class ImagePerceptualHashFilter(Task[ImagePerceptualHashFilterPreferences]):
         return True
 
     def hash_func(self, image: PIL.Image.Image) -> imagehash.ImageHash | imagehash.ImageMultiHash:
-        fn = getattr(imagehash, self.hash_type)
-        return fn(image, hash_size=self.hash_size)
+        return self.hash_fn(image, hash_size=self.hash_size)
 
     @classmethod
     def id(cls) -> str:

@@ -7,7 +7,7 @@ import typing
 from collections import defaultdict
 
 from fk.image.ImageContext import ImageContext
-from fk.task.Task import Task, TaskType
+from fk.worker.Task import Task, TaskType
 
 _DEFAULT_CPU_WORKERS = 24
 _DEFAULT_GPU_WORKERS = 1
@@ -31,7 +31,7 @@ class WorkerManager:
         self._shutdown = False
         self._started = False
 
-        self.cpu_queue = queue.LifoQueue[Work]()
+        self.cpu_queue = queue.PriorityQueue[Work]()
         self.gpu_queue = queue.Queue[Work]()
 
         self.cpu_worker_threads: list[threading.Thread] = []
@@ -42,12 +42,15 @@ class WorkerManager:
 
         self.task_ipms: dict[str, tuple[int, float]] = defaultdict(lambda: (0, time.time()))
 
-    def _queue_worker_fn(self, index: int, _type: TaskType, _queue: queue.Queue[Work]):
+    def _queue_worker_fn(self, index: int, _type: TaskType, _queue: queue.Queue[int, Work]):
         while not self._shutdown:
             try:
                 self.set_idle_state(index, _type, True)
 
                 task, context = _queue.get_nowait()
+                if task is None or context is None:
+                    continue
+
                 self.set_idle_state(index, _type, False)
 
                 task_ipm = task.max_ipm
@@ -65,8 +68,9 @@ class WorkerManager:
                                 f"[{ipm} > {task.max_ipm}]"
                             )
 
-                            self.submit((task, context))
-                            _queue.task_done()
+                            self.submit(task, context)
+                            # _queue.task_done()
+
                             continue
 
                 self.task_ipms[task.id()] = (item_count + 1, first_task_time)
@@ -74,7 +78,6 @@ class WorkerManager:
 
                 for i in range(max_attempts):
                     try:
-
                         success = task.process(context)
 
                         if success:
@@ -82,7 +85,7 @@ class WorkerManager:
 
                             if not self._shutdown and next_task is not None:
                                 self.logger.debug(f"Submitting from task '{task.id()}' to task '{next_task.id()}'")
-                                self.submit((next_task, context))
+                                self.submit(next_task, context)
 
                             # else:
                             #     self.logger.info(f"Task '{task.id()}' rejected an image.")
@@ -93,7 +96,7 @@ class WorkerManager:
                         traceback.print_exception(e)
                         continue
 
-                _queue.task_done()
+                # _queue.task_done()
 
             except queue.Empty:
                 continue
@@ -125,16 +128,15 @@ class WorkerManager:
     def shutdown(self):
         self._shutdown = True
 
-    def submit(self, work: Work):
-        task, context = work
-
+    def submit(self, task: Task, context: ImageContext):
         if task.type == TaskType.CPU:
-            self.cpu_queue.put((task, context))
+            self.cpu_queue.put((task, context), block=False)
+
         elif task.type == TaskType.GPU:
-            self.gpu_queue.put((task, context))
+            self.gpu_queue.put((task, context), block=False)
 
         else:
-            raise RuntimeError(f"Unknown task type '{task.id()}' for task '{task.id()}'.")
+            raise RuntimeError(f"Unknown task type '{task.type}' for task '{task.id()}'.")
 
     def active(self) -> bool:
         return not all(self.cpu_worker_idle_states) \

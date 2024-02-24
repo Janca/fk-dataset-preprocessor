@@ -17,6 +17,9 @@ class ImageContext:
         self._cv2 = None
         self._cv2_grayscale = None
 
+    def __lt__(self, other) -> bool:
+        return False
+
     @property
     def image(self):
         if self._image is None:

@@ -4,7 +4,7 @@ import cv2
 import numpy
 
 from fk.image.ImageContext import ImageContext
-from fk.task.Task import Task, TaskType
+from fk.worker.Task import Task, TaskType
 
 
 class EntropyFilterPreferences(typing.TypedDict):

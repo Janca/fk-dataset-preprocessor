@@ -7,18 +7,17 @@ import traceback
 import typing
 
 import fk.io
-import fk.task
 import fk.utils.modules
 import fk.utils.time
 from fk.image.ImageContext import ImageContext
-from fk.task.Task import TaskType
+from fk.worker.Task import Task, TaskType
 from fk.worker.WorkerManager import WorkerManager, WorkerManagerPreferences
 
 Preferences = dict[str, any]
 _T = typing.TypeVar('_T')
 
 
-class DatasetDestinationTaskWrapper(fk.task.Task):
+class DatasetDestinationTaskWrapper(Task):
 
     def __init__(self, *destination: fk.io.DatasetDestination):
         super().__init__()
@@ -73,10 +72,10 @@ class DatasetPreprocessor:
             datefmt='%Y-%m-%dT%H:%M:%S'
         )
 
-        self._task_map: dict[str, fk.task.Task] = {}
+        self._task_map: dict[str, Task] = {}
         self._source_map: dict[str, fk.io.DatasetSource] = {}
         self._destination_map: dict[str, fk.io.DatasetDestination] = {}
-        self._destination_wrapper: fk.task.Task | None = None
+        self._destination_wrapper: Task | None = None
 
         worker_manager_preferences = preferences.get('workers', {})
         self._worker_manager = WorkerManager(worker_manager_preferences)
@@ -84,14 +83,14 @@ class DatasetPreprocessor:
         self._shutdown = False
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def register_tasks(self, package: str):
-        self.logger.info(f"Registering tasks from '{package}'.")
+    def discover_tasks(self, package: str):
+        self.logger.info(f"Discovering tasks from '{package}'.")
 
-        loaded_classes: list[type[fk.task.Task]] = self._load_modules_and_classes(package)
-        task_classes: dict[str, type[fk.task.Task]] = {}
+        loaded_classes: list[type[Task]] = self._load_modules_and_classes(package)
+        task_classes: dict[str, type[Task]] = {}
 
         for task_class in loaded_classes:
-            if issubclass(task_class, fk.task.Task):
+            if issubclass(task_class, Task):
                 task_id = task_class.id()
                 self.logger.debug(f"Found task with id '{task_id}'.")
                 task_classes[task_id] = task_class
@@ -113,7 +112,7 @@ class DatasetPreprocessor:
 
             self.register_task(task_inst, task_preferences)
 
-    def register_task(self, task: fk.task.Task, preferences: Preferences = None):
+    def register_task(self, task: Task, preferences: Preferences = None):
         task_id = task.id()
         task_name = task.name()
 
@@ -128,7 +127,9 @@ class DatasetPreprocessor:
             raise RuntimeError(f"Task with id '{task_id}' failed to load.")
 
         registered_tasks = self.tasks
-        if len(registered_tasks) > 0:
+        tasks_len = len(registered_tasks)
+
+        if tasks_len > 0:
             last_task = registered_tasks[-1]
             # noinspection PyProtectedMember
             last_task_next_task = last_task._next
@@ -141,16 +142,16 @@ class DatasetPreprocessor:
             else:
                 last_task._next = task
 
-        task._work_pool = self
+        task._priority = tasks_len + 1
         self._task_map[task_id] = task
         self.logger.info(f"Registered task with id '{task_id}'.")
 
-    def register_io(self, package: str):
+    def discover_io(self, package: str):
         self.register_sources(package)
         self.register_destinations(package)
 
     def register_sources(self, package: str):
-        self.logger.info(f"Registering sources from package '{package}'.")
+        self.logger.info(f"Discovering sources from package '{package}'.")
 
         loaded_classes: list[type[fk.io.DatasetSource]] = self._load_modules_and_classes(package)
         source_classes: dict[str, type[fk.io.DatasetSource]] = {}
@@ -197,7 +198,7 @@ class DatasetPreprocessor:
         self.logger.info(f"Registered source with id '{source_id}'.")
 
     def register_destinations(self, package: str):
-        self.logger.info(f"Registering destinations from package '{package}'.")
+        self.logger.info(f"Discovering destinations from package '{package}'.")
 
         loaded_classes: list[type[fk.io.DatasetDestination]] = self._load_modules_and_classes(package)
         destination_classes: dict[str, type[fk.io.DatasetDestination]] = {}
@@ -307,11 +308,9 @@ class DatasetPreprocessor:
                 self.logger.info(f"Processing source with id '{source_id}'.")
                 for image_loader in source.next():
                     image_context = ImageContext(image_loader)
-                    self._worker_manager.submit((first_task, image_context))
+                    self._worker_manager.submit(first_task, image_context)
 
                     items += 1
-                    if items % 100 == 0:
-                        time.sleep(0.25)
 
             self.logger.info("Completed processing sources.")
             self.logger.info('Waiting for tasks to complete...')
@@ -343,7 +342,7 @@ class DatasetPreprocessor:
         self._worker_manager.shutdown()
 
     @property
-    def tasks(self) -> list[fk.task.Task]:
+    def tasks(self) -> list[Task]:
         return list(self._task_map.values())
 
     @property
