@@ -1,7 +1,6 @@
 import inspect
 import logging
 import os
-import queue
 import textwrap
 import time
 import traceback
@@ -11,10 +10,9 @@ import fk.io
 import fk.task
 import fk.utils.modules
 import fk.utils.time
-from fk.task.Task import TaskType
-
-from fk.worker.WorkerManager import WorkerManager, WorkerManagerPreferences
 from fk.image.ImageContext import ImageContext
+from fk.task.Task import TaskType
+from fk.worker.WorkerManager import WorkerManager, WorkerManagerPreferences
 
 Preferences = dict[str, any]
 _T = typing.TypeVar('_T')
@@ -125,9 +123,9 @@ class DatasetPreprocessor:
         if preferences is None:
             preferences = self.get_task_preferences(task_id)
 
-        if not task.load_preferences(preferences):
+        if not task.load_preferences(preferences, self.env):
             self.logger.warning(f"Task with id '{task_id}' failed to load.")
-            return
+            raise RuntimeError(f"Task with id '{task_id}' failed to load.")
 
         registered_tasks = self.tasks
         if len(registered_tasks) > 0:
@@ -191,7 +189,7 @@ class DatasetPreprocessor:
         if preferences is None:
             preferences = self.get_source_preferences(source_id)
 
-        if not source.load_preferences(preferences):
+        if not source.load_preferences(preferences, self.env):
             self.logger.fatal(f"Source with id '{source_id}' failed to load.")
             raise IOError(f"Source with id '{source_id}' failed to load.")
 
@@ -238,7 +236,7 @@ class DatasetPreprocessor:
         if preferences is None:
             preferences = self.get_destination_preferences(destination_id)
 
-        if not destination.load_preferences(preferences):
+        if not destination.load_preferences(preferences, self.env):
             self.logger.fatal(f"Destination with id '{destination_id}' failed to load.")
             raise IOError(f"Destination with id '{destination_id}' failed to load.")
 
@@ -250,21 +248,21 @@ class DatasetPreprocessor:
         if task_preferences is None:
             return None
 
-        return task_preferences.get(task_id, None)
+        return task_preferences.get(task_id, {})
 
     def get_source_preferences(self, source_id: str) -> typing.Optional[Preferences]:
         source_preferences = self.preferences.get('input', None)
         if source_preferences is None:
             return None
 
-        return source_preferences.get(source_id, None)
+        return source_preferences.get(source_id, {})
 
     def get_destination_preferences(self, destination_id: str) -> typing.Optional[Preferences]:
         destination_preferences = self.preferences.get('output', None)
         if destination_preferences is None:
             return None
 
-        return destination_preferences.get(destination_id, None)
+        return destination_preferences.get(destination_id, {})
 
     def start(self):
         tasks = self.tasks
@@ -286,16 +284,15 @@ class DatasetPreprocessor:
         last_task._next = destination_task_wrapper
 
         self.logger.info('Initializing tasks...')
-        env = self.preferences.get('env', {})
 
         for source in sources:
-            source.initialize(env)
+            source.initialize()
 
         for task in tasks:
-            task.initialize(env)
+            task.initialize()
 
         for destination in destinations:
-            destination.initialize(env)
+            destination.initialize()
 
         items = 0
         start_time = time.time()
@@ -348,6 +345,10 @@ class DatasetPreprocessor:
     @property
     def tasks(self) -> list[fk.task.Task]:
         return list(self._task_map.values())
+
+    @property
+    def env(self) -> dict[str, any]:
+        return self.preferences.get('env', {})
 
     def report(self):
         report_str = 'Task Report:\n'

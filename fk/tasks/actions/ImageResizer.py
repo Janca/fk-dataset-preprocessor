@@ -27,7 +27,7 @@ class ImageResizer(Task[ImageResizerPreferences]):
     minimum_height: int | None
     maximum_height: int | None
 
-    def load_preferences(self, preferences: ImageResizerPreferences) -> bool:
+    def load_preferences(self, preferences: ImageResizerPreferences, env: dict[str, any]) -> bool:
         self.minimum_edge = preferences.get('minimum_edge', None)
         self.maximum_edge = preferences.get('maximum_edge', None)
 
@@ -81,5 +81,3 @@ class ImageResizer(Task[ImageResizerPreferences]):
     @property
     def type(self) -> TaskType:
         return TaskType.CPU
-
-

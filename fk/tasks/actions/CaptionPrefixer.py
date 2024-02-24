@@ -1,11 +1,11 @@
-from fk.task.Task import Task, TaskType
 from fk.image.ImageContext import ImageContext
+from fk.task.Task import Task, TaskType
 
 
 class CaptionPrefixer(Task[str]):
     prefix: str
 
-    def load_preferences(self, preferences: str) -> bool:
+    def load_preferences(self, preferences: str, env: dict[str, any]) -> bool:
         self.prefix = preferences.strip()
         return self.prefix != ''
 

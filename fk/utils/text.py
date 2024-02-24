@@ -1,7 +1,5 @@
 import re
 
-import unidecode
-
 SUPPORTED_CAPTION_EXTENSIONS = ['.txt', '.caption']
 
 _TEXT_REPLACEMENT = {

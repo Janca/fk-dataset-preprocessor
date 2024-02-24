@@ -1,8 +1,8 @@
+import importlib
+import inspect
 import os
 import sys
 import warnings
-import importlib
-import inspect
 
 
 def _load_modules_from_directory(directory, parent_package=None):

@@ -2,7 +2,6 @@ import hashlib
 import io
 import os
 import typing
-import uuid
 
 import PIL.Image
 
@@ -29,7 +28,7 @@ class DatasetDiskDestination(DatasetDestination[DatasetDiskDestinationPreference
 
     extensions: dict[str, str]
 
-    def load_preferences(self, preferences: DatasetDiskDestinationPreferences | str) -> bool:
+    def load_preferences(self, preferences: DatasetDiskDestinationPreferences | str, env) -> bool:
         if isinstance(preferences, str):
             self.destination_path = preferences.strip()
             self.image_ext = _DEFAULT_IMAGE_EXTENSION
@@ -45,7 +44,7 @@ class DatasetDiskDestination(DatasetDestination[DatasetDiskDestinationPreference
 
         return self.validate_str(self.destination_path)
 
-    def initialize(self, env: dict[str, any] = None):
+    def initialize(self):
         self.extensions = PIL.Image.registered_extensions()
         os.makedirs(self.destination_path, exist_ok=True)
 

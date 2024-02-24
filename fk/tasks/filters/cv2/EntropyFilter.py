@@ -16,7 +16,7 @@ class EntropyFilter(Task[EntropyFilterPreferences]):
     minimum: float
     maximum: float
 
-    def load_preferences(self, preferences: EntropyFilterPreferences | float) -> bool:
+    def load_preferences(self, preferences: EntropyFilterPreferences | float, env: dict[str, any]) -> bool:
         if isinstance(preferences, dict):
             self.minimum = preferences.get('minimum', -1)
             self.maximum = preferences.get('maximum', -1)

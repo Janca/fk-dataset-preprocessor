@@ -1,20 +1,19 @@
 import abc
 import enum
 import logging
-import queue
-import threading
 import typing
 
 from fk.common.Preprocessor import Preprocessor
 from fk.image.ImageContext import ImageContext
 
+_T = typing.TypeVar('_T')
 
 class TaskType(enum.IntEnum):
     CPU = enum.auto()
     GPU = enum.auto()
 
 
-class Task(Preprocessor, abc.ABC):
+class Task(Preprocessor[_T], abc.ABC):
 
     def __init__(self):
         self._started = False
@@ -34,6 +33,10 @@ class Task(Preprocessor, abc.ABC):
     @abc.abstractmethod
     def type(self) -> TaskType:
         raise NotImplementedError()
+
+    @property
+    def max_ipm(self) -> int:
+        return -1
 
     @property
     def next_task(self):

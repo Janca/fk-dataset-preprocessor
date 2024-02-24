@@ -6,11 +6,11 @@ _T = typing.TypeVar('_T')
 
 class Preprocessor(typing.Generic[_T], abc.ABC):
 
-    def initialize(self, env: dict[str, any] = None):
-        pass
-
-    def load_preferences(self, preferences: _T) -> bool:
+    def load_preferences(self, preferences: _T, env: dict[str, any]) -> bool:
         return True
+
+    def initialize(self):
+        pass
 
     @classmethod
     def name(cls):

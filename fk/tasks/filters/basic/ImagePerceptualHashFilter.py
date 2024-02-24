@@ -1,5 +1,4 @@
 import typing
-import logging
 
 import PIL.Image
 import imagehash
@@ -23,7 +22,7 @@ class ImagePerceptualHashFilter(Task[ImagePerceptualHashFilterPreferences]):
         super().__init__()
         self.image_hashes: set[imagehash.ImageHash | imagehash.ImageMultiHash] = set()
 
-    def load_preferences(self, preferences: ImagePerceptualHashFilterPreferences) -> bool:
+    def load_preferences(self, preferences: ImagePerceptualHashFilterPreferences, env: dict[str, any]) -> bool:
         self.hash_type = preferences.get('hash_type', None)
 
         self.hash_size = preferences.get('hash_size', None)

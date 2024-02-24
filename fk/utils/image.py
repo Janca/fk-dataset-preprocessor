@@ -1,3 +1,4 @@
+import base64
 import io
 
 import PIL.Image
@@ -21,6 +22,12 @@ def load_image_from_filepath(filepath: str) -> PIL.Image.Image:
 
     bytes_io = io.BytesIO(_bytes)
     return PIL.Image.open(bytes_io)
+
+
+def image_to_b64_jpeg(image: PIL.Image.Image, quality=90) -> str:
+    with io.BytesIO() as bio:
+        image.save(bio, format="JPEG", optimize=True, quality=quality)
+        return base64.b64encode(bio.getvalue()).decode('utf-8')
 
 
 def pil_to_cv2(image: PIL.Image.Image) -> numpy.ndarray:

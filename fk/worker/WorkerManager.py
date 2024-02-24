@@ -1,8 +1,10 @@
 import logging
 import queue
 import threading
+import time
 import traceback
 import typing
+from collections import defaultdict
 
 from fk.image.ImageContext import ImageContext
 from fk.task.Task import Task, TaskType
@@ -38,15 +40,37 @@ class WorkerManager:
         self.gpu_worker_threads: list[threading.Thread] = []
         self.gpu_worker_idle_states: list[bool] = [True] * self.max_gpu_workers
 
+        self.task_ipms: dict[str, tuple[int, float]] = defaultdict(lambda: (0, time.time()))
+
     def _queue_worker_fn(self, index: int, _type: TaskType, _queue: queue.Queue[Work]):
         while not self._shutdown:
             try:
                 task, context = _queue.get_nowait()
+
+                task_ipm = task.max_ipm
+                item_count, first_task_time = self.task_ipms[task.id()]
+
+                if task_ipm != -1:
+                    delta_time_seconds = time.time() - first_task_time
+                    if delta_time_seconds > 0 and item_count > 0:
+                        ips = item_count / delta_time_seconds
+                        ipm = ips * 60
+
+                        if ipm > task.max_ipm:
+                            self.logger.debug(
+                                f"Rescheduling task '{task.id()}' - above images per minute threshold. "
+                                f"[{ipm} > {task.max_ipm}]"
+                            )
+
+                            self.submit((task, context))
+                            continue
+
                 if _type == TaskType.CPU:
                     self.cpu_worker_idle_states[index] = False
                 elif _type == TaskType.GPU:
                     self.gpu_worker_idle_states[index] = False
 
+                self.task_ipms[task.id()] = (item_count + 1, first_task_time)
                 max_attempts = task.max_attempts
 
                 for i in range(max_attempts):
@@ -79,9 +103,6 @@ class WorkerManager:
 
             except queue.Empty:
                 continue
-
-            except Exception as e:
-                traceback.print_exception(e)
 
         task_type = 'CPU' if _type == TaskType.CPU else 'GPU'
         self.logger.info(f'Thread:{task_type}:{index} complete.')

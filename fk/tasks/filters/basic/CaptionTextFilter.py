@@ -15,7 +15,7 @@ class CaptionTextFilter(Task[CaptionTextFilterPreferences]):
     allowed_tags: list[str] | str | None
     disallowed_tags: list[str] | str | None
 
-    def load_preferences(self, preferences: CaptionTextFilterPreferences) -> bool:
+    def load_preferences(self, preferences: CaptionTextFilterPreferences, env: dict[str, any]) -> bool:
         self.caption_text_required = preferences.get('caption_text_required', False)
         self.allowed_tags = preferences.get('allowed_tags', None)
         self.disallowed_tags = preferences.get('disallowed_tags', None)
@@ -56,5 +56,3 @@ class CaptionTextFilter(Task[CaptionTextFilterPreferences]):
     @property
     def type(self) -> TaskType:
         return TaskType.CPU
-
-

@@ -1,8 +1,7 @@
 import fk.image
-import fk.utils
 import fk.task
 import fk.tasks
-
+import fk.utils
 from .DatasetPreprocessor import DatasetPreprocessor, DatasetPreprocessorPreferences
 
 __all__ = [

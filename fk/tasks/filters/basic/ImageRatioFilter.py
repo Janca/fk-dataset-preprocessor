@@ -15,7 +15,7 @@ class ImageRatioFilter(Task[ImageRatioFilterPreferences]):
     disallowed_ratios: list[float | str] | float | str | None
     allow_inverse: bool
 
-    def load_preferences(self, preferences: ImageRatioFilterPreferences) -> bool:
+    def load_preferences(self, preferences: ImageRatioFilterPreferences, env: dict[str, any]) -> bool:
         self.allowed_ratios = preferences.get("allowed_ratios", None)
         self.disallowed_ratios = preferences.get("disallowed_ratios", None)
         self.allow_inverse = preferences.get("allow_inverse", False)
@@ -51,5 +51,3 @@ class ImageRatioFilter(Task[ImageRatioFilterPreferences]):
     @property
     def type(self) -> TaskType:
         return TaskType.CPU
-
-

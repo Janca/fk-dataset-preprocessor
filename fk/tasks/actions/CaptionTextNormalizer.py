@@ -6,8 +6,8 @@ from fk.task.Task import Task, TaskType
 
 class CaptionTextNormalizer(Task[bool]):
 
-    def load_preferences(self, enabled: bool) -> bool:
-        return enabled
+    def load_preferences(self, preferences: bool, env: dict[str, any]) -> bool:
+        return preferences
 
     def process(self, context: ImageContext) -> bool:
         caption_text = context.caption_text

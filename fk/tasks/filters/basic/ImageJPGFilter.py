@@ -6,9 +6,6 @@ from fk.task.Task import Task, TaskType
 
 
 class ImageJPGFilter(Task[float]):
-    _NUM_QUANT_TBLS = 4
-    _DCTSIZE2 = 64
-
     _HASH_2 = [
         1020, 1015, 932, 848, 780, 735, 702, 679, 660, 645,
         632, 623, 613, 607, 600, 594, 589, 585, 581, 571,
@@ -69,7 +66,7 @@ class ImageJPGFilter(Task[float]):
 
     quality: float | None
 
-    def load_preferences(self, preferences: float) -> bool:
+    def load_preferences(self, preferences: float, env: dict[str, any]) -> bool:
         self.quality = max(0.0, min(preferences, 100.0))
         return 0 < self.quality <= 100.0
 

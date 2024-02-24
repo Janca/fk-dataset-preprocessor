@@ -13,7 +13,7 @@ class ImageModeFilter(Task[ImageModeFilterPreferences]):
     allowed_modes: list[str] | None
     disallowed_modes: list[str] | None
 
-    def load_preferences(self, preferences: ImageModeFilterPreferences | None) -> bool:
+    def load_preferences(self, preferences: ImageModeFilterPreferences | None, env: dict[str, any]) -> bool:
         allowed_modes = preferences.get('allowed_modes', None)
         disallowed_modes = preferences.get('disallowed_modes', None)
 

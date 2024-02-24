@@ -27,7 +27,7 @@ class DatasetDiskSourceImageLoader(ImageLoader):
 class DatasetDiskSource(DatasetSource[list[str] | str]):
     source_paths: list[str]
 
-    def load_preferences(self, preferences: list[str] | str) -> bool:
+    def load_preferences(self, preferences: list[str] | str, env) -> bool:
         if isinstance(preferences, list):
             self.source_paths = preferences
 

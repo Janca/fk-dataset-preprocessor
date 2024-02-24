@@ -2,7 +2,6 @@ import typing
 
 import cv2
 
-from fk.common.Preprocessor import _T
 from fk.image import ImageContext
 from fk.task.Task import Task, TaskType
 
@@ -16,7 +15,7 @@ class BlurFilter(Task[BlurFilterPreferences | float]):
     minimum: float
     maximum: float
 
-    def load_preferences(self, preferences: BlurFilterPreferences | float) -> bool:
+    def load_preferences(self, preferences: BlurFilterPreferences | float, env: dict[str, any]) -> bool:
         if isinstance(preferences, dict):
             self.minimum = preferences.get('minimum', -1)
             self.maximum = preferences.get('maximum', -1)
@@ -49,5 +48,3 @@ class BlurFilter(Task[BlurFilterPreferences | float]):
     @property
     def type(self) -> TaskType:
         return TaskType.CPU
-
-

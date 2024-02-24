@@ -26,7 +26,7 @@ class ImageSizeFilter(Task[ImageSizeFilterPreferences]):
     minimum_height: int | None
     maximum_height: int | None
 
-    def load_preferences(self, preferences: ImageSizeFilterPreferences) -> bool:
+    def load_preferences(self, preferences: ImageSizeFilterPreferences, env: dict[str, any]) -> bool:
         self.minimum_edge = preferences.get('minimum_edge', 0)
         self.maximum_edge = preferences.get('maximum_edge', sys.maxsize)
 
