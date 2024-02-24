@@ -1,5 +1,4 @@
 import json
-import time
 import traceback
 import typing
 
@@ -62,7 +61,6 @@ class GPTVisionCaptioner(Task[GPTVisionCaptionerPreferences | str]):
 
         prompt = self.prompt.replace('%caption_text%', caption_text).strip()
         openai_caption = self.generate_caption(image, prompt)
-        time.sleep(0.25)
 
         if openai_caption is None:
             return False
@@ -70,7 +68,13 @@ class GPTVisionCaptioner(Task[GPTVisionCaptionerPreferences | str]):
         if isinstance(openai_caption, bool):
             return False
 
-        openai_caption = openai_caption['caption']
+        openai_caption = openai_caption.get('caption', None)
+        if openai_caption is None:
+            return False
+
+        openai_caption = openai_caption.strip()
+        if openai_caption == '':
+            return False
 
         mode = self.mode
         if mode == 'append':

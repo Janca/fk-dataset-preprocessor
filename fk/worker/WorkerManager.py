@@ -45,7 +45,10 @@ class WorkerManager:
     def _queue_worker_fn(self, index: int, _type: TaskType, _queue: queue.Queue[Work]):
         while not self._shutdown:
             try:
+                self.set_idle_state(index, _type, True)
+
                 task, context = _queue.get_nowait()
+                self.set_idle_state(index, _type, False)
 
                 task_ipm = task.max_ipm
                 item_count, first_task_time = self.task_ipms[task.id()]
@@ -63,12 +66,8 @@ class WorkerManager:
                             )
 
                             self.submit((task, context))
+                            _queue.task_done()
                             continue
-
-                if _type == TaskType.CPU:
-                    self.cpu_worker_idle_states[index] = False
-                elif _type == TaskType.GPU:
-                    self.gpu_worker_idle_states[index] = False
 
                 self.task_ipms[task.id()] = (item_count + 1, first_task_time)
                 max_attempts = task.max_attempts
@@ -96,16 +95,17 @@ class WorkerManager:
 
                 _queue.task_done()
 
-                if _type == TaskType.CPU:
-                    self.cpu_worker_idle_states[index] = True
-                elif _type == TaskType.GPU:
-                    self.gpu_worker_idle_states[index] = True
-
             except queue.Empty:
                 continue
 
         task_type = 'CPU' if _type == TaskType.CPU else 'GPU'
         self.logger.info(f'Thread:{task_type}:{index} complete.')
+
+    def set_idle_state(self, index: int, _type: TaskType, idle: bool):
+        if _type == TaskType.CPU:
+            self.cpu_worker_idle_states[index] = idle
+        elif _type == TaskType.GPU:
+            self.gpu_worker_idle_states[index] = idle
 
     def start(self):
         self.logger.info(f"Starting {self.max_cpu_workers} CPU workers.")
