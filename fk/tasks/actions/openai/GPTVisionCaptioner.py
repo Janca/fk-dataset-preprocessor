@@ -61,7 +61,7 @@ class GPTVisionCaptioner(Task[GPTVisionCaptionerPreferences | str]):
         image = context.image
 
         prompt = self.prompt.replace('%caption_text%', caption_text).strip()
-        openai_caption = {"caption": "this is a test"}  # self.generate_caption(image, prompt)
+        openai_caption = self.generate_caption(image, prompt)
         time.sleep(0.25)
 
         if openai_caption is None:
