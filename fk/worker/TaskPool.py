@@ -57,10 +57,10 @@ class TaskPool(ITaskPool):
                         continue
 
             success = False
+            task_pool.increment_processed()
             for i in range(pool_task.max_attempts):
                 try:
                     success = pool_task.process(context)
-                    task_pool.increment_processed()
 
                     if success:
                         next_task_pool = self.worker_manager.get_next_task_pool(task_pool)

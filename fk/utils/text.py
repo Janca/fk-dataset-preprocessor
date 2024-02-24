@@ -51,21 +51,20 @@ def normalize_caption_text(text: str) -> str:
         if len(caption_tag) > 0 and caption_tag not in normalized_tags:
             normalized_tags.append(caption_tag)
 
-    return ", ".join(normalized_tags).strip()
+    return ", ".join(normalized_tags).strip().lower()
 
 
 def bulk_text_replacement(text: str, replacements: dict[str, str]) -> list[str]:
-    caption_text = text.lower()
     for s, r in replacements.items():
-        caption_text = re.sub(s, r, caption_text)
+        text = re.sub(s, r, text, flags=re.IGNORECASE)
 
     normalized_tags: list[str] = []
-    caption_tags: list[str] = caption_text.split(',')
+    caption_tags: list[str] = text.split(',')
 
     for caption_tag in caption_tags:
         caption_tag = caption_tag.strip()
 
-        if len(caption_tag) > 0:
+        if caption_tag != '':
             normalized_tags.append(caption_tag)
 
     return normalized_tags
