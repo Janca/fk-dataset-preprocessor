@@ -74,12 +74,12 @@ class ExtractA1111PromptMeta(Task[ExtractA1111PromptMetaPreferences | bool]):
 
             else:
                 self.logger.error(f"Unknown mode '{mode}'.")
-                return self.fail_on_invalid_caption
+                return not self.fail_on_invalid_caption
 
             context.caption_text = caption_text
             return True
 
-        return self.fail_on_invalid_caption
+        return not self.fail_on_invalid_caption
 
     @property
     def type(self) -> TaskType:
