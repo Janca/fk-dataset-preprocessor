@@ -16,21 +16,27 @@ if __name__ == '__main__':
         'log_level': logging.INFO,
         'suppress_invalid_keys': True,
         'input': {
-            'fk:source:disk': r'./samples'
+            'fk:source:disk': [
+                r'E:\StableDiffusion\SD Datasets\CivProfiles\001',
+                r'E:\MidJourney\mj_scrape\2023102703',
+                r'E:\MidJourney\mj_scrape\2023111001',
+                r'E:\MidJourney\2023_05_01',
+                r'E:\StableDiffusion\SD Datasets\fkNiteshade\004'
+            ]
         },
         'output': {
             'fk:destination:disk': {
-                'path': r'./preprocessed',
+                'path': r'E:\StableDiffusion\SD Datasets\fkNeapolitan\001',
                 'image_extension': '.jpg',
                 'caption_text_extension': '.txt',
                 'kwargs': {
-                    'quality': 85
+                    'quality': 93
                 }
             }
         },
         'workers': {
             'cpu_workers': 64,
-            'io_workers': 10
+            'io_workers': 8
         },
         'env': env,
         'tasks': {
@@ -41,14 +47,14 @@ if __name__ == '__main__':
             },
             'fk:filter:jpg_quality': 75,
             'fk:filter:image_size': {
-                'minimum_edge': 512
+                'minimum_edge': 1024
             },
             'fk:filter:image_brightness': {
                 'minimum': 0.125,
                 'maximum': 0.98
             },
-            # 'fk:filter:cv2_entropy': 7.15,
-            # 'fk:filter:cv2_blur': 300,
+            'fk:filter:cv2_entropy': 7.65,
+            'fk:filter:cv2_blur': 400,
             'fk:filter:image_hash': {
                 'hash_size': 8,
                 'distance_threshold': 11
@@ -56,9 +62,9 @@ if __name__ == '__main__':
             'fk:action:extract_webui_prompt': {
                 'fail_on_invalid_caption': False  # if this fails, let GPT caption it
             },
-            'fk:action:gpt_vision_captioner': {
-                'skip_on_existing_caption': False
-            },
+            # 'fk:action:gpt_vision_captioner': {
+            #     'skip_on_existing_caption': False
+            # },
             'fk:action:bulk_caption_text_replacer': {
                 r'fk(.+?)($|\b|\s)': ''
             },
@@ -69,7 +75,9 @@ if __name__ == '__main__':
                     '1girl', 'manga', 'asian',
                     'korean', 'japanese', 'chinese',
                     'dragon', 'miniature', 'badly',
-                    'ugly', 'deformed'
+                    'ugly', 'deformed', 'sticker',
+                    'breast', 'boob', 'tit',
+                    'hot'
                 ],
                 'caption_text_required': True
             },

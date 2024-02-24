@@ -95,7 +95,8 @@ class DatasetPreprocessor(IWorkerManager):
         task_classes: dict[str, type[Task]] = {}
 
         for task_class in loaded_classes:
-            if issubclass(task_class, Task):
+            if not inspect.isabstract(task_class) and issubclass(task_class, Task):
+                task_class.print_preferences_docs()
                 task_id = task_class.id()
                 self.logger.debug(f"Found task with id '{task_id}'.")
                 task_classes[task_id] = task_class
@@ -127,7 +128,7 @@ class DatasetPreprocessor(IWorkerManager):
         if preferences is None:
             preferences = self.get_task_preferences(task_id)
 
-        if not task.load_preferences(preferences, self.env):
+        if not task._load_preferences(preferences, self.env):
             self.logger.warning(f"Task with id '{task_id}' failed to load.")
             raise RuntimeError(f"Task with id '{task_id}' failed to load.")
 
@@ -181,7 +182,7 @@ class DatasetPreprocessor(IWorkerManager):
         if preferences is None:
             preferences = self.get_source_preferences(source_id)
 
-        if not source.load_preferences(preferences, self.env):
+        if not source._load_preferences(preferences, self.env):
             self.logger.fatal(f"Source with id '{source_id}' failed to load.")
             raise IOError(f"Source with id '{source_id}' failed to load.")
 
@@ -228,7 +229,7 @@ class DatasetPreprocessor(IWorkerManager):
         if preferences is None:
             preferences = self.get_destination_preferences(destination_id)
 
-        if not destination.load_preferences(preferences, self.env):
+        if not destination._load_preferences(preferences, self.env):
             self.logger.fatal(f"Destination with id '{destination_id}' failed to load.")
             raise IOError(f"Destination with id '{destination_id}' failed to load.")
 
@@ -283,8 +284,14 @@ class DatasetPreprocessor(IWorkerManager):
 
         try:
             for source_id, source in self._source_map.items():
+                if self._shutdown:
+                    break
+
                 self.logger.info(f"Processing source with id '{source_id}'.")
                 for image_loader in source.next():
+                    if self._shutdown:
+                        break
+
                     image_context = ImageContext(image_loader)
                     first_task_pool.submit(image_context)
                     items += 1
@@ -304,7 +311,7 @@ class DatasetPreprocessor(IWorkerManager):
 
                 time.sleep(0.25)
 
-        except (KeyboardInterrupt, InterruptedError):
+        except (KeyboardInterrupt, InterruptedError, SystemExit):
             self.logger.info("Interrupted processing, shutting down...")
             self._shutdown = True
 

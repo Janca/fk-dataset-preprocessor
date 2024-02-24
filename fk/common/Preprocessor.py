@@ -5,6 +5,11 @@ _T = typing.TypeVar('_T')
 
 
 class Preprocessor(typing.Generic[_T], abc.ABC):
+    _preferences: _T
+
+    def _load_preferences(self, preferences: _T, env: dict[str, any]) -> bool:
+        self._preferences = preferences
+        return self.load_preferences(preferences, env)
 
     def load_preferences(self, preferences: _T, env: dict[str, any]) -> bool:
         return True
@@ -20,3 +25,7 @@ class Preprocessor(typing.Generic[_T], abc.ABC):
     @abc.abstractmethod
     def id(cls):
         raise NotImplementedError()
+
+    @property
+    def preferences(self) -> _T:
+        return self._preferences

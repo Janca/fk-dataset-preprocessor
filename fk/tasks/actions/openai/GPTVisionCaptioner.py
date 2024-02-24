@@ -62,6 +62,35 @@ _DEFAULT_MODE = 'replace'
 
 
 class GPTVisionCaptionerPreferences(typing.TypedDict):
+    """
+    {
+        "openai_key": str | None,
+        "system_prompt": str | None,
+        "prompt": str | None,
+        "fidelity": 'auto' | 'high' | 'low',
+        "mode": 'append' | 'replace' | 'prefix',
+        "skip_on_existing_caption": bool,
+        "include_existing_caption_in_prompt": bool,
+        "fail_on_invalid_caption": bool
+    } | str | bool
+
+    If passed as true, the task will default to:
+    {
+        "openai_key": None,
+        "system_prompt": None,
+        "prompt": _DEFAULT_PROMPT,
+        "fidelity": 'auto',
+        "mode": 'replace',
+        "skip_on_existing_caption": true,
+        "include_existing_caption_in_prompt": true,
+        "fail_on_invalid_caption": true
+    }
+
+    If passed as a str, the task will default to the same as a true boolean
+    value, but the string will be used as the prompt when submitting the image
+    to OpenAI.
+    """
+
     openai_key: str | None
     system_prompt: str | None
     prompt: str | None
@@ -281,3 +310,7 @@ class GPTVisionCaptioner(Task[GPTVisionCaptionerPreferences | str | bool]):
     @property
     def max_ipm(self) -> int:
         return 5
+
+    @classmethod
+    def preferences_cls(cls) -> typing.Type | None:
+        return GPTVisionCaptionerPreferences

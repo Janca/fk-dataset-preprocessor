@@ -1,12 +1,30 @@
-import fk.utils.text
+import typing
 
+import unidecode
+
+import fk.utils.text
 from fk.image import ImageContext
 from fk.worker.Task import Task, TaskType
 
 
-class CaptionTextNormalizer(Task[bool]):
+class CaptionTextNormalizerPreferences(typing.TypedDict):
+    ascii: bool
+    normalize: bool
 
-    def load_preferences(self, preferences: bool, env: dict[str, any]) -> bool:
+
+class CaptionTextNormalizer(Task[CaptionTextNormalizerPreferences | bool]):
+    ascii: bool
+    normalize: bool
+
+    def load_preferences(self, preferences: CaptionTextNormalizerPreferences | bool, env: dict[str, any]) -> bool:
+        if isinstance(preferences, dict):
+            self.ascii = preferences.get('ascii', True)
+            self.normalize = preferences.get('normalize', True)
+
+        elif isinstance(preferences, bool) and preferences:
+            self.ascii = True
+            self.normalize = True
+
         return preferences
 
     def process(self, context: ImageContext) -> bool:
@@ -17,7 +35,13 @@ class CaptionTextNormalizer(Task[bool]):
         if caption_text.strip() == '':
             return True
 
-        context.caption_text = fk.utils.text.normalize_caption_text(caption_text)
+        if self.normalize:
+            caption_text = fk.utils.text.normalize_caption_text(caption_text)
+
+        if self.ascii:
+            caption_text = unidecode.unidecode(caption_text)
+
+        context.caption_text = caption_text
         return True
 
     @classmethod

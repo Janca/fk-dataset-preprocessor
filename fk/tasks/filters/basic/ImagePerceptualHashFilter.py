@@ -58,6 +58,7 @@ class ImagePerceptualHashFilter(Task[ImagePerceptualHashFilterPreferences]):
             if image_hash - img_hash <= self.distance_threshold:
                 return False
 
+        self.image_hashes.add(image_hash)
         return True
 
     def hash_func(self, image: PIL.Image.Image) -> imagehash.ImageHash | imagehash.ImageMultiHash:

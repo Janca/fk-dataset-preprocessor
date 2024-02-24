@@ -13,9 +13,8 @@ class BulkCaptionTextReplacer(Task[dict[str, str]]):
 
     def process(self, context: ImageContext) -> bool:
         caption_text = context.caption_text
-        replaced_tags = fk.utils.text.bulk_text_replacement(caption_text, self.replacements)
-        context.caption_text = ', '.join(replaced_tags)
-
+        replaces_lines = fk.utils.text.bulk_text_replacement(caption_text, self.replacements)
+        context.caption_text = '\n'.join([', '.join(t) for t in replaces_lines]).strip()
         return True
 
     @property

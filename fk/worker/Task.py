@@ -1,5 +1,6 @@
 import abc
 import enum
+import inspect
 import logging
 import typing
 
@@ -48,3 +49,19 @@ class Task(Preprocessor[_T], abc.ABC):
     @property
     def priority(self):
         return self._priority
+
+    @classmethod
+    def preferences_cls(cls) -> typing.Type | None:
+        return None
+
+    @classmethod
+    def print_preferences_docs(cls):
+        pref_cls = cls.preferences_cls()
+        if pref_cls is None:
+            return
+
+        doc_str = inspect.getdoc(pref_cls)
+        if doc_str is None:
+            return
+
+        print(doc_str)

@@ -1,5 +1,7 @@
 import re
 
+import unidecode
+
 SUPPORTED_CAPTION_EXTENSIONS = ['.txt', '.caption']
 
 _TEXT_NORMALIZATION = {
@@ -44,27 +46,42 @@ def load_text_from_file(filepath: str) -> str:
 
 
 def normalize_caption_text(text: str) -> str:
-    normalized_tags: list[str] = []
-    caption_tags: list[str] = bulk_text_replacement(text, _TEXT_NORMALIZATION)
+    line_tags: list[list[str]] = bulk_text_replacement(text, _TEXT_NORMALIZATION)
 
-    for caption_tag in caption_tags:
-        if len(caption_tag) > 0 and caption_tag not in normalized_tags:
-            normalized_tags.append(caption_tag)
+    normalized_line_tags: list[list[str]] = []
+    for line in line_tags:
+        normalized_tags: list[str] = []
 
-    return ", ".join(normalized_tags).strip().lower()
+        for caption_tag in line:
+            if len(caption_tag) > 0 and caption_tag not in normalized_tags:
+                normalized_tags.append(caption_tag)
+
+        if len(normalized_tags) > 0:
+            normalized_line_tags.append(normalized_tags)
+
+    normalized_lines: list[str] = [', '.join(t) for t in normalized_line_tags]
+    return '\n'.join(normalized_lines).strip().lower()
 
 
-def bulk_text_replacement(text: str, replacements: dict[str, str]) -> list[str]:
-    for s, r in replacements.items():
-        text = re.sub(s, r, text, flags=re.IGNORECASE)
+def bulk_text_replacement(text: str, replacements: dict[str, str]) -> list[list[str]]:
+    text = unidecode.unidecode(text)
+    lines = text.splitlines()
+    tag_lines: list[list[str]] = []
 
-    normalized_tags: list[str] = []
-    caption_tags: list[str] = text.split(',')
+    for i, line in enumerate(lines):
+        for s, r in replacements.items():
+            lines[i] = re.sub(s, r, line.strip(), flags=re.IGNORECASE)
 
-    for caption_tag in caption_tags:
-        caption_tag = caption_tag.strip()
+        normalized_tags: list[str] = []
+        caption_tags: list[str] = lines[i].split(',')
 
-        if caption_tag != '':
-            normalized_tags.append(caption_tag)
+        for caption_tag in caption_tags:
+            caption_tag = caption_tag.strip()
 
-    return normalized_tags
+            if caption_tag != '':
+                normalized_tags.append(caption_tag)
+
+        if len(normalized_tags) > 0:
+            tag_lines.append(normalized_tags)
+
+    return tag_lines
