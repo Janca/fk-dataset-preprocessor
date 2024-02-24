@@ -10,8 +10,7 @@ import fk.io
 import fk.utils.modules
 import fk.utils.time
 from fk.image.ImageContext import ImageContext
-from fk.worker.Task import Task, TaskType
-from fk.worker.WorkerManager import WorkerManager, WorkerManagerPreferences
+from fk.worker import IWorkerManager, ITaskPool, Task, TaskPool, TaskType, Work
 
 Preferences = dict[str, any]
 _T = typing.TypeVar('_T')
@@ -46,21 +45,27 @@ class DatasetDestinationTaskWrapper(Task):
         return TaskType.CPU
 
 
+class WorkerPreferences(typing.TypedDict, total=False):
+    cpu_workers: int
+    gpu_workers: int
+    io_workers: int
+
+
 class DatasetPreprocessorPreferences(typing.TypedDict, total=False):
     log_level: int
 
-    workers: WorkerManagerPreferences
+    workers: WorkerPreferences
 
     input: Preferences
     output: Preferences
 
-    env: dict[str, any]
+    env: Preferences
 
     tasks: Preferences
     suppress_invalid_keys: bool | None
 
 
-class DatasetPreprocessor:
+class DatasetPreprocessor(IWorkerManager):
 
     def __init__(self, preferences: DatasetPreprocessorPreferences):
         self.preferences = preferences
@@ -76,9 +81,9 @@ class DatasetPreprocessor:
         self._source_map: dict[str, fk.io.DatasetSource] = {}
         self._destination_map: dict[str, fk.io.DatasetDestination] = {}
         self._destination_wrapper: Task | None = None
+        self._task_pools: list[ITaskPool] = []
 
-        worker_manager_preferences = preferences.get('workers', {})
-        self._worker_manager = WorkerManager(worker_manager_preferences)
+        self.worker_preferences = preferences.get('workers', {})
 
         self._shutdown = False
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -244,27 +249,6 @@ class DatasetPreprocessor:
         self._destination_map[destination_id] = destination
         self.logger.info(f"Registered destination with id '{destination_id}'.")
 
-    def get_task_preferences(self, task_id: str) -> typing.Optional[Preferences]:
-        task_preferences = self.preferences.get('tasks', None)
-        if task_preferences is None:
-            return None
-
-        return task_preferences.get(task_id, {})
-
-    def get_source_preferences(self, source_id: str) -> typing.Optional[Preferences]:
-        source_preferences = self.preferences.get('input', None)
-        if source_preferences is None:
-            return None
-
-        return source_preferences.get(source_id, {})
-
-    def get_destination_preferences(self, destination_id: str) -> typing.Optional[Preferences]:
-        destination_preferences = self.preferences.get('output', None)
-        if destination_preferences is None:
-            return None
-
-        return destination_preferences.get(destination_id, {})
-
     def start(self):
         tasks = self.tasks
         tasks_length = len(self.tasks)
@@ -272,17 +256,29 @@ class DatasetPreprocessor:
         if tasks_length == 0:
             raise RuntimeError('No tasks configured.')
 
-        first_task = tasks[0]
-        last_task = tasks[-1]
+        for task in tasks:
+            pool_size = task.pool_size
+
+            if pool_size == -1:
+                if task.type == TaskType.CPU:
+                    pool_size = self.worker_preferences.get('cpu_workers', 1)
+
+                else:
+                    pool_size = self.worker_preferences.get('gpu_workers', 1)
+
+            task_pool = TaskPool(self, task, pool_size)
+            self._task_pools.append(task_pool)
+
+        first_task_pool = self._task_pools[0]
 
         sources = list(self._source_map.values())
         destinations = list(self._destination_map.values())
 
         destination_task_wrapper = DatasetDestinationTaskWrapper(*destinations)
-        self._destination_wrapper = destination_task_wrapper
 
-        self.logger.info(f"Appending destination task wrapper to task with id '{last_task.id()}'.")
-        last_task._next = destination_task_wrapper
+        io_workers = self.worker_preferences.get('io_workers', 1)
+        destination_task_pool = TaskPool(self, destination_task_wrapper, io_workers)
+        self._task_pools.append(destination_task_pool)
 
         self.logger.info('Initializing tasks...')
 
@@ -297,10 +293,6 @@ class DatasetPreprocessor:
 
         items = 0
         start_time = time.time()
-
-        self.logger.info("Starting worker threads...")
-        self._worker_manager.start()
-
         self.logger.info("Processing sources...")
 
         try:
@@ -308,15 +300,20 @@ class DatasetPreprocessor:
                 self.logger.info(f"Processing source with id '{source_id}'.")
                 for image_loader in source.next():
                     image_context = ImageContext(image_loader)
-                    self._worker_manager.submit(first_task, image_context)
-
+                    first_task_pool.submit(image_context)
                     items += 1
 
             self.logger.info("Completed processing sources.")
             self.logger.info('Waiting for tasks to complete...')
 
             while not self._shutdown:
-                if not self._worker_manager.active():
+                shutdown = True
+                for task_pool in self._task_pools:
+                    if not task_pool.is_idle:
+                        shutdown = False
+                        break
+
+                if shutdown:
                     break
 
                 time.sleep(0.25)
@@ -339,7 +336,48 @@ class DatasetPreprocessor:
 
     def shutdown(self):
         self._shutdown = True
-        self._worker_manager.shutdown()
+
+    def get_next_task_pool(self, task_pool: ITaskPool) -> ITaskPool | None:
+        try:
+            index_of = self._task_pools.index(task_pool)
+            if index_of + 1 < len(self._task_pools):
+                return self._task_pools[index_of + 1]
+
+            return None
+
+        except:
+            return None
+
+    def get_work(self, worker: ITaskPool) -> Work | None:
+        for task_pool in self._task_pools:
+            if task_pool == worker:
+                continue
+
+            if task_pool.has_work:
+                return task_pool.steal_work()
+
+        return None
+
+    def get_task_preferences(self, task_id: str) -> typing.Optional[Preferences]:
+        task_preferences = self.preferences.get('tasks', None)
+        if task_preferences is None:
+            return None
+
+        return task_preferences.get(task_id, {})
+
+    def get_source_preferences(self, source_id: str) -> typing.Optional[Preferences]:
+        source_preferences = self.preferences.get('input', None)
+        if source_preferences is None:
+            return None
+
+        return source_preferences.get(source_id, {})
+
+    def get_destination_preferences(self, destination_id: str) -> typing.Optional[Preferences]:
+        destination_preferences = self.preferences.get('output', None)
+        if destination_preferences is None:
+            return None
+
+        return destination_preferences.get(destination_id, {})
 
     @property
     def tasks(self) -> list[Task]:
@@ -348,6 +386,10 @@ class DatasetPreprocessor:
     @property
     def env(self) -> dict[str, any]:
         return self.preferences.get('env', {})
+
+    @property
+    def is_shutdown(self) -> bool:
+        return self._shutdown
 
     def report(self):
         report_str = 'Task Report:\n'

@@ -11,11 +11,11 @@ if __name__ == '__main__':
         'log_level': logging.INFO,
         'suppress_invalid_keys': True,
         'input': {
-            'fk:source:disk': r'./samples'
+            'fk:source:disk': r'E:\MidJourney\mj_scrape\2023102703'
         },
         'output': {
             'fk:destination:disk': {
-                'path': r'./preprocessed',
+                'path': r'E:\TEMP4',
                 'image_extension': '.jpg',
                 'caption_text_extension': '.txt',
                 'kwargs': {
@@ -24,7 +24,8 @@ if __name__ == '__main__':
             }
         },
         'workers': {
-            'cpu_workers': 24
+            'cpu_workers': 128,
+            'io_workers': 10
         },
         'env': env,
         'tasks': {
@@ -37,16 +38,16 @@ if __name__ == '__main__':
             'fk:filter:image_size': {
                 'minimum_edge': 512
             },
-            # 'fk:filter:cv2_entropy': 7.15,
-            # 'fk:filter:cv2_blur': 300,
-            # 'fk:filter:image_hash': {
-            #     'hash_size': 8,
-            #     'distance_threshold': 11
-            # },
+            'fk:filter:cv2_entropy': 7.15,
+            'fk:filter:cv2_blur': 300,
+            'fk:filter:image_hash': {
+                'hash_size': 8,
+                'distance_threshold': 11
+            },
             'fk:action:extract_webui_prompt': {
                 'fail_on_invalid_caption': False  # if this fails, let GPT caption it
             },
-            'fk:action:gpt_vision_captioner': True,  # defaults to skipping if caption exists
+            # 'fk:action:gpt_vision_captioner': True,  # defaults to skipping if caption exists
             'fk:action:caption_text_normalizer': True,
             'fk:filter:caption_text': {
                 'disallowed_tags': [

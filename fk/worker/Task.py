@@ -33,6 +33,10 @@ class Task(Preprocessor[_T], abc.ABC):
         return 1
 
     @property
+    def pool_size(self) -> int:
+        return -1
+
+    @property
     @abc.abstractmethod
     def type(self) -> TaskType:
         raise NotImplementedError()
