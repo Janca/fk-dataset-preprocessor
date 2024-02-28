@@ -74,7 +74,7 @@ class TaskPool(ITaskPool):
 
                         break
 
-                except:
+                except Exception as e:
                     continue
 
             if not success:

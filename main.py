@@ -16,17 +16,12 @@ if __name__ == '__main__':
         'log_level': logging.INFO,
         'suppress_invalid_keys': True,
         'input': {
-            'fk:source:disk': [
-                r'E:\StableDiffusion\SD Datasets\CivProfiles\001',
-                r'E:\MidJourney\mj_scrape\2023102703',
-                r'E:\MidJourney\mj_scrape\2023111001',
-                r'E:\MidJourney\2023_05_01',
-                r'E:\StableDiffusion\SD Datasets\fkNiteshade\004'
-            ]
+            # 'fk:source:civitai_image_scraper': True,
+            'fk:source:disk': f'./samples'
         },
         'output': {
             'fk:destination:disk': {
-                'path': r'E:\StableDiffusion\SD Datasets\fkNeapolitan\001',
+                'path': r'./preprocessed',
                 'image_extension': '.jpg',
                 'caption_text_extension': '.txt',
                 'kwargs': {
@@ -55,16 +50,16 @@ if __name__ == '__main__':
             },
             'fk:filter:cv2_entropy': 7.65,
             'fk:filter:cv2_blur': 400,
-            'fk:filter:image_hash': {
-                'hash_size': 8,
-                'distance_threshold': 11
-            },
             'fk:action:extract_webui_prompt': {
                 'fail_on_invalid_caption': False  # if this fails, let GPT caption it
             },
-            # 'fk:action:gpt_vision_captioner': {
-            #     'skip_on_existing_caption': False
-            # },
+            'fk:action:image_resize': {
+                'maximum_width': 1024,
+                'maximum_height': 1024
+            },
+            'fk:action:gpt_vision_captioner': {
+                'skip_on_existing_caption': False
+            },
             'fk:action:bulk_caption_text_replacer': {
                 r'fk(.+?)($|\b|\s)': ''
             },
@@ -80,6 +75,10 @@ if __name__ == '__main__':
                     'hot'
                 ],
                 'caption_text_required': True
+            },
+            'fk:filter:image_hash': {
+                'hash_size': 8,
+                'distance_threshold': 11
             },
             'fk:action:caption_prefixer': 'fking'
         }

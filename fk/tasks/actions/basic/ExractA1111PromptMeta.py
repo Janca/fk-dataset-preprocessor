@@ -33,51 +33,56 @@ class ExtractA1111PromptMeta(Task[ExtractA1111PromptMetaPreferences | bool]):
 
     def process(self, context: ImageContext) -> bool:
         image = context.image
-        metadata = image.info
 
-        if metadata is None:
-            return not self.fail_on_invalid_caption
+        try:
+            metadata = image.info
 
-        caption_text = context.caption_text
-        if self.skip_on_existing_caption:
-            if caption_text is not None and caption_text != '':
+            if metadata is None:
+                return not self.fail_on_invalid_caption
+
+            caption_text = context.caption_text
+            if self.skip_on_existing_caption:
+                if caption_text is not None and caption_text != '':
+                    return True
+
+            parameters_str = metadata.get('parameters', None)
+            if parameters_str is None:
+                return not self.fail_on_invalid_caption
+
+            parameters = parameters_str.split("\n")
+            if len(parameters) > 0:
+                prompt = parameters[0].strip()
+
+                if prompt == '':
+                    return not self.fail_on_invalid_caption
+
+                mode = self.mode
+                if mode == 'replace':
+                    caption_text = prompt
+
+                elif mode == 'append':
+                    if caption_text:
+                        caption_text = f"{caption_text}, {prompt}"
+
+                    else:
+                        caption_text = prompt
+
+                elif mode == 'prefix':
+                    if caption_text:
+                        caption_text = f"{prompt}, {caption_text}"
+
+                    else:
+                        caption_text = prompt
+
+                else:
+                    self.logger.error(f"Unknown mode '{mode}'.")
+                    return not self.fail_on_invalid_caption
+
+                context.caption_text = caption_text
                 return True
 
-        parameters_str = metadata.get('parameters', None)
-        if parameters_str is None:
-            return not self.fail_on_invalid_caption
-
-        parameters = parameters_str.split("\n")
-        if len(parameters) > 0:
-            prompt = parameters[0].strip()
-
-            if prompt == '':
-                return not self.fail_on_invalid_caption
-
-            mode = self.mode
-            if mode == 'replace':
-                caption_text = prompt
-
-            elif mode == 'append':
-                if caption_text:
-                    caption_text = f"{caption_text}, {prompt}"
-
-                else:
-                    caption_text = prompt
-
-            elif mode == 'prefix':
-                if caption_text:
-                    caption_text = f"{prompt}, {caption_text}"
-
-                else:
-                    caption_text = prompt
-
-            else:
-                self.logger.error(f"Unknown mode '{mode}'.")
-                return not self.fail_on_invalid_caption
-
-            context.caption_text = caption_text
-            return True
+        except:
+            pass
 
         return not self.fail_on_invalid_caption
 

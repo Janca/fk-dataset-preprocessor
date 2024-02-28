@@ -70,7 +70,7 @@ def bulk_text_replacement(text: str, replacements: dict[str, str]) -> list[list[
 
     for i, line in enumerate(lines):
         for s, r in replacements.items():
-            lines[i] = re.sub(s, r, line.strip(), flags=re.IGNORECASE)
+            lines[i] = re.sub(s, r, lines[i].strip(), flags=re.IGNORECASE)
 
         normalized_tags: list[str] = []
         caption_tags: list[str] = lines[i].split(',')

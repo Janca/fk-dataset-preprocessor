@@ -39,10 +39,10 @@ class ImageResizer(Task[ImageResizerPreferences]):
 
         return any(
             [
-                self.minimum_width,
-                self.maximum_width,
-                self.minimum_height,
-                self.maximum_height
+                self.minimum_width is not None,
+                self.maximum_width is not None,
+                self.minimum_height is not None,
+                self.maximum_height is not None
             ]
         )
 

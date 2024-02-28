@@ -96,7 +96,6 @@ class DatasetPreprocessor(IWorkerManager):
 
         for task_class in loaded_classes:
             if not inspect.isabstract(task_class) and issubclass(task_class, Task):
-                task_class.print_preferences_docs()
                 task_id = task_class.id()
                 self.logger.debug(f"Found task with id '{task_id}'.")
                 task_classes[task_id] = task_class

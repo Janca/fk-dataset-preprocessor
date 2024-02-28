@@ -2,8 +2,8 @@ def format_timedelta(start: float, end: float) -> str:
     delta = end - start
 
     sec = delta
-    hours = sec // 3600
-    minutes = (sec // 60) % 60  # Use modulo to get remaining minutes after dividing by 60
-    seconds = sec % 60  # Use modulo to get remaining seconds after removing minutes
+    hours = int(sec // 3600)
+    minutes = int((sec // 60) % 60)
+    seconds = int(sec % 60)
 
-    return f'{hours:02f}:{minutes:02f}:{seconds:02f}'
+    return f'{hours:02d}:{minutes:02d}:{seconds:02d}'

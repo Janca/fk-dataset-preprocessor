@@ -4,8 +4,23 @@ import io
 import PIL.Image
 import cv2
 import numpy
+import requests
 
 SUPPORTED_IMAGE_TYPES = ['.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff', '.tif']
+
+
+def download_image(url: str) -> PIL.Image.Image:
+    response = requests.get(url, 'rb', stream=True)
+    if not response.ok:
+        raise IOError(f'Failed to download: {url}')
+
+    image_bio = io.BytesIO(response.content)
+
+    try:
+        return PIL.Image.open(image_bio)
+
+    except:
+        return None
 
 
 def is_image(filepath: str) -> bool:
